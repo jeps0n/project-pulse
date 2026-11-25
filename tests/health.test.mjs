@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { average, dependencyHealth, applicationHealth, systemSummary, diagnostic, aggregateHttp, elapsed, monitoringMetrics } from '../src/js/health.js';
+import { average, dependencyHealth, applicationHealth, systemSummary, diagnostic, aggregateHttp, elapsed, monitoringMetrics, currentSystemSummary, STALE_AFTER_MS } from '../src/js/health.js';
 const pulse = (ok, latencyMs = 100, httpStatus = ok ? 200 : 503) => ({ok,latencyMs,httpStatus});
 const good = pulse(true), bad = pulse(false);
 const site = (...checks) => ({lastCheck:'2026-11-25T15:00:00Z',checks:checks.map(pulses=>({pulses}))});
@@ -30,4 +30,20 @@ test('missing pulses are not counted as successful or attempted',()=>{
  const m=monitoringMetrics([site([good,bad,good],[{ok:null},{ok:null},{ok:null}])]);
  assert.deepEqual(m,{dependencies:2,healthyDependencies:0,attempted:3,successful:2,expected:6,rate:66.7});
  assert.equal(monitoringMetrics([]).rate,null);
+});
+
+test('freshness boundary preserves fresh health and warns at two hours', () => {
+ const t = '2026-11-25T15:00:00Z', now = Date.parse(t), sites = [site([good,good,good])];
+ assert.equal(currentSystemSummary(sites,t,now+STALE_AFTER_MS-1).health,'up');
+ const stale = currentSystemSummary(sites,t,now+STALE_AFTER_MS);
+ assert.equal(stale.health,'warn'); assert.equal(stale.headline,'Monitoring overdue'); assert.equal(stale.healthy,1);
+});
+test('invalid or implausibly future timestamps cannot report current health', () => {
+ const now = Date.parse('2026-11-25T15:00:00Z'), sites = [site([good,good,good])];
+ for (const t of [undefined, 'invalid', '2026-11-25T16:00:00Z']) assert.equal(currentSystemSummary(sites,t,now).health,'warn');
+});
+test('fresh critical results remain critical; stale results are historical', () => {
+ const t = '2026-11-25T15:00:00Z', now = Date.parse(t), sites = [site([bad,bad,bad])];
+ assert.equal(currentSystemSummary(sites,t,now).health,'down');
+ assert.equal(currentSystemSummary(sites,t,now+STALE_AFTER_MS).headline,'Monitoring overdue');
 });

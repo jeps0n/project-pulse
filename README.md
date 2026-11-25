@@ -17,7 +17,7 @@ A lightweight synthetic monitoring dashboard that transforms cloud service avail
 | Status | Meaning |
 | :--- | :--- |
 | 🟢 **Healthy** | Successful checks within the performance threshold. |
-| 🟡 **Warning** | Degraded performance, partial failure or incomplete monitoring data. |
+| 🟡 **Warning** | Degraded performance, partial failure, overdue or incomplete monitoring data. |
 | 🔴 **Critical** | Complete dependency check failure. |
 
 ## Features
@@ -28,6 +28,8 @@ A lightweight synthetic monitoring dashboard that transforms cloud service avail
 - Interactive diagnostics with HTTP status codes and individual response times.
 - Automatically refreshed results with live elapsed-time indicators.
 - Automated tests for monitoring and health classification.
+- Hourly monitoring and deployment through GitHub Actions and GitHub Pages.
+- Freshness protection that flags results as overdue after two hours.
 
 ## How it works
 
@@ -54,7 +56,7 @@ flowchart TD
 
 Project Pulse separates monitoring execution from presentation, turning cloud measurements into a consistent view of application health. Automated tests validate the monitoring and classification logic.
 
-The diagram describes the deployment architecture; local execution uses the same monitoring worker and dashboard.
+GitHub Actions runs the monitoring worker hourly and supports manual execution. GitHub Pages serves the resulting dashboard; local execution uses the same monitoring worker and dashboard.
 
 ## Local development
 

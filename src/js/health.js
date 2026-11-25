@@ -57,3 +57,16 @@ export function monitoringMetrics(sites) {
     attempted, successful, expected: checks.length * PULSE_COUNT,
     rate: attempted ? Math.round(successful / attempted * 1000) / 10 : null };
 }
+
+export const STALE_AFTER_MS = 2 * 60 * 60 * 1000;
+export function currentSystemSummary(sites, generatedAt, now = Date.now()) {
+  const summary = systemSummary(sites);
+  const timestamp = Date.parse(generatedAt);
+  if (!Number.isFinite(timestamp) || timestamp > now + 60000) {
+    return {...summary, health: 'warn', headline: 'Monitoring unavailable', message: 'The latest results have no valid check timestamp.'};
+  }
+  if (now - timestamp >= STALE_AFTER_MS) {
+    return {...summary, health: 'warn', headline: 'Monitoring overdue', message: 'Showing last known results. No recent monitoring update.'};
+  }
+  return summary;
+}

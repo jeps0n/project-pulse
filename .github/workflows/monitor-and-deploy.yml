@@ -1,6 +1,8 @@
 name: Monitor and deploy Project Pulse
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
 permissions:
   contents: read
   pages: write
@@ -33,6 +35,7 @@ jobs:
           QUEST_SUPABASE_ANON_KEY: ${{ secrets.QUEST_SUPABASE_ANON_KEY }}
         run: |
           mkdir -p src/data
+          sudo chown -R 1000:1000 src/data
           docker run --rm \
             -e RESORT_AZURE_HEALTH_URL \
             -e RESORT_SUPABASE_URL \

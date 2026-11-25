@@ -1,9 +1,17 @@
 import { startPolling } from './polling.js';
-import { SLOW_AFTER_MS, PULSE_COUNT, labels, average, dependencyHealth, applicationHealth, diagnostic, aggregateHttp, elapsed, systemSummary, monitoringMetrics } from './health.js';
+import { SLOW_AFTER_MS, PULSE_COUNT, labels, average, dependencyHealth, applicationHealth, diagnostic, aggregateHttp, elapsed, currentSystemSummary, monitoringMetrics } from './health.js';
 const $ = id => document.getElementById(id);
 const date = v => Number.isFinite(Date.parse(v)) ? `${new Date(v).toLocaleString()} (${elapsed(v)})` : 'Not yet checked';
-let lastCheck = null, modalCheck, selectedDependency, lastSnapshot;
+let lastCheck = null, modalCheck, selectedDependency, lastSnapshot, lastSites;
+function updateBanner() {
+  if (!lastSites) return;
+  const summary = currentSystemSummary(lastSites, lastCheck);
+  $('system-headline').textContent = summary.headline;
+  $('system-message').textContent = summary.message;
+  $('hero-status').setAttribute('class', `hero-indicator ${summary.health}`);
+}
 function updateTimes() {
+  updateBanner();
   if (lastCheck !== null) $('sync').textContent = lastCheck ? `Last check: ${date(lastCheck)}` : 'Monitoring not configured';
   if ($('pulse-dialog').open) $('pulse-time').textContent = `Last check: ${date(modalCheck)} · Slow threshold: ${SLOW_AFTER_MS} ms`;
 }
@@ -45,16 +53,14 @@ $('pulse-dialog').addEventListener('close', () => {
 function render(data) {
   const sites = data.sites || [];
   $('total').textContent = sites.length;
-  const summary = systemSummary(sites);
+  lastSites = sites;
+  lastCheck = data.generatedAt || undefined;
+  const summary = currentSystemSummary(sites, lastCheck);
   $('healthy').textContent = summary.healthy + ' / ' + sites.length;
-  $('system-headline').textContent = summary.headline;
-  $('system-message').textContent = summary.message;
-  $('hero-status').setAttribute('class', `hero-indicator ${summary.health}`);
   const metrics = monitoringMetrics(sites);
   $('dependencies').textContent = `${metrics.healthyDependencies} / ${metrics.dependencies}`;
   $('pulse-rate').textContent = metrics.rate === null ? '—' : `${metrics.rate}%`;
   $('pulse-count').textContent = metrics.attempted ? `${metrics.successful} of ${metrics.attempted} successful${metrics.attempted < metrics.expected ? ' · Incomplete' : ''}` : 'No completed pulses';
-  lastCheck = data.generatedAt || undefined;
   updateTimes();
   const list = $('services');
   const focused = document.activeElement?.closest('.dependency-link');
@@ -104,7 +110,7 @@ function render(data) {
 }
 async function load(){
   try{const r=await fetch(`data/status.json?t=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw Error(`HTTP ${r.status}`);const data = await r.json(); const snapshot = JSON.stringify(data); if (snapshot !== lastSnapshot) { render(data); lastSnapshot = snapshot; }}
-  catch(e){lastSnapshot = undefined; if ($('pulse-dialog').open) $('pulse-dialog').close(); lastCheck = null; $('services').replaceChildren();$('healthy').textContent='—';$('total').textContent='—';$('dependencies').textContent='—';$('pulse-rate').textContent='—';$('pulse-count').textContent='No results available';$('sync').textContent='Unable to load monitoring results';$('system-headline').textContent='Monitoring unavailable';$('system-message').textContent='The latest results could not be loaded.';$('hero-status').setAttribute('class','hero-indicator warn');console.error(e);}
+  catch(e){lastSites = undefined; lastSnapshot = undefined; if ($('pulse-dialog').open) $('pulse-dialog').close(); lastCheck = null; $('services').replaceChildren();$('healthy').textContent='—';$('total').textContent='—';$('dependencies').textContent='—';$('pulse-rate').textContent='—';$('pulse-count').textContent='No results available';$('sync').textContent='Unable to load monitoring results';$('system-headline').textContent='Monitoring unavailable';$('system-message').textContent='The latest results could not be loaded.';$('hero-status').setAttribute('class','hero-indicator warn');console.error(e);}
 }
 startPolling(load);
 
