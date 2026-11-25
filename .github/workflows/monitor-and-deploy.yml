@@ -2,7 +2,7 @@ name: Monitor and deploy Project Pulse
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 * * * *'
+    - cron: '0 * * * *'
 permissions:
   contents: read
   pages: write
@@ -52,3 +52,4 @@ jobs:
       - name: Deploy dashboard
         id: deployment
         uses: actions/deploy-pages@v4
+
