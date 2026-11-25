@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { PULSE_COUNT } from '../src/js/health.js';
 import { performance } from 'node:perf_hooks';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -34,7 +35,14 @@ export async function runCheck(c, env = process.env, request = fetch) {
   const key = c.kind === 'supabase' ? env[c.keyEnv] : null;
   if (!raw || (c.kind === 'supabase' && !key)) return { ok: null, httpStatus: null, latencyMs: null, error: 'Not configured' };
   if (!isPublicHttps(raw)) return { ok: false, httpStatus: null, latencyMs: null, error: 'Invalid HTTPS endpoint' };
-  const url = c.kind === 'supabase' ? new URL(c.endpoint, raw).toString() : raw;
+  let url = raw;
+  if (c.kind === 'supabase') {
+    try {
+      const target = new URL(c.endpoint, raw);
+      if (typeof c.endpoint !== 'string' || !c.endpoint.startsWith('/') || target.origin !== new URL(raw).origin || !isPublicHttps(target.href)) throw Error();
+      url = target.href;
+    } catch { return { ok: false, httpStatus: null, latencyMs: null, error: 'Invalid HTTPS endpoint' }; }
+  }
   const headers = { accept: 'application/json', 'user-agent': 'ProjectPulse/1.0' };
   if (key) headers.apikey = key;
   const start = performance.now();
@@ -48,6 +56,12 @@ export async function runCheck(c, env = process.env, request = fetch) {
       error: e?.name === 'TimeoutError' ? 'Timeout' : 'Request failed' };
   }
 }
+// Aggregate only repeated requests to the same dependency.
+export async function runMultiCheck(c, env = process.env, request = fetch) {
+  const pulses = [];
+  for (let i = 0; i < PULSE_COUNT; i++) pulses.push(await runCheck(c, env, request));
+  return { pulses };
+}
 export async function main() {
   const sites = validateSites(JSON.parse(await readFile(configPath, 'utf8')));
   const now = new Date().toISOString();
@@ -55,20 +69,16 @@ export async function main() {
   for (const site of sites) {
     const checks = [];
     for (const c of site.checks) {
-      const r = await runCheck(c);
+      const r = await runMultiCheck(c);
       checks.push({ id: c.id, name: c.name, kind: c.kind, ...r });
-      console.log(`${site.name} / ${c.name}: ${r.ok === null ? 'unconfigured' : r.ok ? 'pass' : 'fail'}`);
+      console.log(`${site.name} / ${c.name}: ${r.pulses.every(p => p.ok === null) ? 'unconfigured' : `${r.pulses.filter(p => p.ok === true).length}/${PULSE_COUNT} passed`}`);
     }
-    const ok = checks.some(c => c.ok === false) ? false : checks.every(c => c.ok === true) ? true : null;
-    const measured = checks.filter(c => Number.isFinite(c.latencyMs));
-    const latencyMs = measured.length ? Math.round(measured.reduce((a,c) => a+c.latencyMs,0)/measured.length) : null;
     results.push({ id: site.id, name: site.name, description: site.description, lastCheck: now,
-      ok, latencyMs, httpStatus: checks.length === 1 ? checks[0].httpStatus : null,
       checks });
   }
   await mkdir(path.dirname(outputPath), { recursive: true });
   await writeFile(outputPath, JSON.stringify({ generatedAt: now, sites: results }, null, 2) + '\n');
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch(e => { console.error(e); process.exitCode = 1; });
+  main().catch(() => { console.error('Monitoring could not complete. Check configuration and output permissions.'); process.exitCode = 1; });
 }

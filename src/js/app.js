@@ -1,34 +1,66 @@
-'use strict';
+import { startPolling } from './polling.js';
+import { SLOW_AFTER_MS, PULSE_COUNT, labels, average, dependencyHealth, applicationHealth, diagnostic, aggregateHttp, elapsed, systemSummary, monitoringMetrics } from './health.js';
 const $ = id => document.getElementById(id);
-const date = v => v ? new Date(v).toLocaleString() : 'Not yet checked';
-// Green = successful, timely check. Yellow = degraded, stale, or missing data. Red = failed check.
-// Manual checks until the schedule is approved; no assumed freshness window.
-const SLOW_AFTER_MS = 1500;
-function state(s) {
-  if (!s.checks?.length) return ['Warning', 'warn'];
-  if (s.checks.some(c => c.ok === false)) return ['Critical', 'down'];
-  if (s.checks.some(c => c.ok !== true) || !s.lastCheck || !Number.isFinite(Date.parse(s.lastCheck))) return ['Warning', 'warn'];
-  if (s.checks.some(c => Number.isFinite(c.latencyMs) && c.latencyMs > SLOW_AFTER_MS)) return ['Warning', 'warn'];
-  return ['Healthy', 'up'];
+const date = v => Number.isFinite(Date.parse(v)) ? `${new Date(v).toLocaleString()} (${elapsed(v)})` : 'Not yet checked';
+let lastCheck = null, modalCheck, selectedDependency, lastSnapshot;
+function updateTimes() {
+  if (lastCheck !== null) $('sync').textContent = lastCheck ? `Last check: ${date(lastCheck)}` : 'Monitoring not configured';
+  if ($('pulse-dialog').open) $('pulse-time').textContent = `Last check: ${date(modalCheck)} · Slow threshold: ${SLOW_AFTER_MS} ms`;
 }
+setInterval(updateTimes, 1000);
 const latency = v => Number.isFinite(v) ? `${v} ms` : '—';
+function showPulses(site, check) {
+  const dialog = $('pulse-dialog');
+  const pulses = check.pulses || [];
+  $('pulse-title').textContent = `${site.name} / ${check.name}`;
+  $('pulse-summary').textContent = pulses.length ? `${pulses.filter(p => p.ok === true).length}/${pulses.length} successful · Avg. successful response: ${latency(average(pulses))}` : 'No individual pulse results available.';
+  modalCheck = site.lastCheck;
+  $('pulse-time').textContent = `Last check: ${date(modalCheck)} · Slow threshold: ${SLOW_AFTER_MS} ms`;
+  const body = $('pulse-results');
+  body.replaceChildren();
+  Array.from({length: PULSE_COUNT}, (_, i) => pulses[i] || {ok:null}).forEach((pulse, i) => {
+    const row = body.insertRow();
+    const cls = pulse.ok === false ? 'down' : pulse.ok === true && Number.isFinite(pulse.latencyMs) && pulse.latencyMs <= SLOW_AFTER_MS ? 'up' : 'warn';
+    const label = pulse.ok === false ? 'Failed' : pulse.ok === true ? (cls === 'warn' ? 'Slow' : 'Passed') : '—';
+    row.insertCell().textContent = `Pulse ${i + 1}`;
+    const status = row.insertCell();
+    status.className = `dependency-status ${cls}`;
+    status.textContent = pulse.ok === null ? '—' : label;
+    row.insertCell().textContent = pulse.httpStatus ?? '—';
+    row.insertCell().textContent = latency(pulse.latencyMs);
+    row.insertCell().textContent = pulses[i] ? diagnostic(pulse) : 'No result';
+  });
+  selectedDependency = { siteId: site.id, checkId: check.id };
+  if (!dialog.open) dialog.showModal();
+}
+$('pulse-close').addEventListener('click', () => $('pulse-dialog').close());
+$('pulse-dialog').addEventListener('close', () => {
+  if (selectedDependency) {
+    const { siteId, checkId } = selectedDependency;
+    const link = [...document.querySelectorAll('.dependency-link')].find(b => b.dataset.siteId === siteId && b.dataset.checkId === checkId);
+    link?.focus({ preventScroll: true });
+  }
+  selectedDependency = undefined;
+});
 function render(data) {
   const sites = data.sites || [];
   $('total').textContent = sites.length;
-  const states = sites.map(state);
-  const healthyCount = states.filter(([, cls]) => cls === 'up').length;
-  const redCount = states.filter(([, cls]) => cls === 'down').length;
-  const yellowCount = states.filter(([, cls]) => cls === 'warn').length;
-  $('healthy').textContent = healthyCount + ' / ' + sites.length;
-  $('system-headline').textContent = redCount ? 'Issues detected' : yellowCount ? 'Attention required' : sites.length ? 'All systems operational' : 'No services configured';
-  $('system-message').textContent = redCount ? `${redCount} service${redCount === 1 ? '' : 's'} failed the latest check.` : yellowCount ? `${yellowCount} service${yellowCount === 1 ? '' : 's'} need attention. See the application checks below.` : sites.length ? `All ${sites.length} monitored services passed their latest checks.` : 'Add monitoring targets to begin checking services.';
-  $('hero-status').className = `hero-indicator ${redCount ? 'down' : yellowCount || !sites.length ? 'warn' : 'up'}`;
-  const success = sites.flatMap(s => s.checks || []).filter(c => c.ok === true && Number.isFinite(c.latencyMs));
-  $('avg').textContent = success.length ? latency(Math.round(success.reduce((a,s)=>a+s.latencyMs,0)/success.length)) : '—';
-  $('sync').textContent = data.generatedAt ? `Last check: ${date(data.generatedAt)}` : 'Monitoring not configured';
-  const list = $('services'); list.replaceChildren();
+  const summary = systemSummary(sites);
+  $('healthy').textContent = summary.healthy + ' / ' + sites.length;
+  $('system-headline').textContent = summary.headline;
+  $('system-message').textContent = summary.message;
+  $('hero-status').setAttribute('class', `hero-indicator ${summary.health}`);
+  const metrics = monitoringMetrics(sites);
+  $('dependencies').textContent = `${metrics.healthyDependencies} / ${metrics.dependencies}`;
+  $('pulse-rate').textContent = metrics.rate === null ? '—' : `${metrics.rate}%`;
+  $('pulse-count').textContent = metrics.attempted ? `${metrics.successful} of ${metrics.attempted} successful${metrics.attempted < metrics.expected ? ' · Incomplete' : ''}` : 'No completed pulses';
+  lastCheck = data.generatedAt || undefined;
+  updateTimes();
+  const list = $('services');
+  const focused = document.activeElement?.closest('.dependency-link');
+  list.replaceChildren();
   sites.forEach(site => {
-    const [label, cls] = state(site);
+    const cls = applicationHealth(site), label = labels[cls];
     const card = document.createElement('article'); card.className = 'service';
     const top = document.createElement('div'); top.className='service-top';
     const icon = document.createElement('span'); icon.className=`service-indicator ${cls}`; icon.setAttribute('aria-label', label);
@@ -42,26 +74,39 @@ function render(data) {
     }
     const body = table.createTBody();
     for (const check of site.checks || []) {
-      const [status, color] = state({ checks: [check], lastCheck: site.lastCheck });
+      const color = dependencyHealth(check.pulses), status = labels[color];
       const row = body.insertRow();
-      row.insertCell().textContent = check.name;
+      const name = row.insertCell();
+      const details = document.createElement('button');
+      details.type = 'button'; details.className = 'dependency-link';
+      details.textContent = check.name;
+      details.dataset.siteId = site.id;
+      details.dataset.checkId = check.id;
+      details.setAttribute('aria-label', `View pulse details for ${site.name} / ${check.name}`);
+      details.addEventListener('click', () => showPulses(site, check));
+      name.append(details);
+      row.addEventListener('click', e => { if (!e.target.closest('button')) showPulses(site, check); });
       const cell = row.insertCell(); cell.className = `dependency-status ${color}`;
-      cell.textContent = check.ok == null ? 'Not configured' : status;
-      row.insertCell().textContent = check.httpStatus ?? '—';
-      row.insertCell().textContent = latency(check.latencyMs);
+      cell.textContent = status;
+      row.insertCell().textContent = aggregateHttp(check.pulses);
+      row.insertCell().textContent = latency(average(check.pulses || []));
     }
     card.append(top,title,table); list.append(card);
   });
+  if ($('pulse-dialog').open && selectedDependency) {
+    const site = sites.find(s => s.id === selectedDependency.siteId);
+    const check = site?.checks?.find(c => c.id === selectedDependency.checkId);
+    if (check) showPulses(site, check);
+    else $('pulse-dialog').close();
+  } else if (focused) {
+    [...list.querySelectorAll('.dependency-link')].find(b => b.dataset.siteId === focused.dataset.siteId && b.dataset.checkId === focused.dataset.checkId)?.focus({ preventScroll: true });
+  }
 }
 async function load(){
-  $('refresh').disabled=true;
-  try{const r=await fetch(`data/status.json?t=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw Error(`HTTP ${r.status}`);render(await r.json());}
-  catch(e){$('services').replaceChildren();$('healthy').textContent='—';$('avg').textContent='—';$('sync').textContent='Unable to load monitoring results';$('system-headline').textContent='Monitoring unavailable';$('system-message').textContent='The latest results could not be loaded.';$('hero-status').className='hero-indicator warn';console.error(e);}
-  finally{$('refresh').disabled=false;}
+  try{const r=await fetch(`data/status.json?t=${Date.now()}`,{cache:'no-store'});if(!r.ok)throw Error(`HTTP ${r.status}`);const data = await r.json(); const snapshot = JSON.stringify(data); if (snapshot !== lastSnapshot) { render(data); lastSnapshot = snapshot; }}
+  catch(e){lastSnapshot = undefined; if ($('pulse-dialog').open) $('pulse-dialog').close(); lastCheck = null; $('services').replaceChildren();$('healthy').textContent='—';$('total').textContent='—';$('dependencies').textContent='—';$('pulse-rate').textContent='—';$('pulse-count').textContent='No results available';$('sync').textContent='Unable to load monitoring results';$('system-headline').textContent='Monitoring unavailable';$('system-message').textContent='The latest results could not be loaded.';$('hero-status').setAttribute('class','hero-indicator warn');console.error(e);}
 }
-$('refresh').addEventListener('click',load);
-load();
-
+startPolling(load);
 
 (function () {
   const title = document.querySelector('.brand-copy h1');

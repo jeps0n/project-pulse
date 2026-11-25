@@ -1,32 +1,61 @@
 {
-  "generatedAt": "2026-11-25T15:00:52.754Z",
+  "generatedAt": "2026-11-25T18:44:27.443Z",
   "sites": [
     {
       "id": "resort-ops",
       "name": "Resort Ops",
       "description": "Azure Functions + Supabase",
-      "lastCheck": "2026-11-25T15:00:52.754Z",
-      "ok": true,
-      "latencyMs": 151,
-      "httpStatus": null,
+      "lastCheck": "2026-11-25T18:44:27.443Z",
       "checks": [
         {
           "id": "azure-api",
           "name": "Azure API",
           "kind": "http",
-          "ok": true,
-          "httpStatus": 200,
-          "latencyMs": 169,
-          "error": null
+          "pulses": [
+            {
+              "ok": true,
+              "httpStatus": 200,
+              "latencyMs": 2456,
+              "error": null
+            },
+            {
+              "ok": true,
+              "httpStatus": 200,
+              "latencyMs": 110,
+              "error": null
+            },
+            {
+              "ok": true,
+              "httpStatus": 200,
+              "latencyMs": 32,
+              "error": null
+            }
+          ]
         },
         {
           "id": "supabase",
           "name": "Supabase",
           "kind": "supabase",
-          "ok": true,
-          "httpStatus": 200,
-          "latencyMs": 132,
-          "error": null
+          "pulses": [
+            {
+              "ok": true,
+              "httpStatus": 200,
+              "latencyMs": 808,
+              "error": null
+            },
+            {
+              "ok": true,
+              "httpStatus": 200,
+              "latencyMs": 133,
+              "error": null
+            },
+            {
+              "ok": true,
+              "httpStatus": 200,
+              "latencyMs": 105,
+              "error": null
+            }
+          ]
         }
       ]
     },
@@ -34,19 +63,32 @@
       "id": "quest-of-fortune",
       "name": "Quest of Fortune",
       "description": "Supabase backend",
-      "lastCheck": "2026-11-25T15:00:52.754Z",
-      "ok": true,
-      "latencyMs": 135,
-      "httpStatus": 200,
+      "lastCheck": "2026-11-25T18:44:27.443Z",
       "checks": [
         {
           "id": "supabase",
           "name": "Supabase",
           "kind": "supabase",
-          "ok": true,
-          "httpStatus": 200,
-          "latencyMs": 135,
-          "error": null
+          "pulses": [
+            {
+              "ok": true,
+              "httpStatus": 200,
+              "latencyMs": 799,
+              "error": null
+            },
+            {
+              "ok": true,
+              "httpStatus": 200,
+              "latencyMs": 298,
+              "error": null
+            },
+            {
+              "ok": true,
+              "httpStatus": 200,
+              "latencyMs": 103,
+              "error": null
+            }
+          ]
         }
       ]
     }

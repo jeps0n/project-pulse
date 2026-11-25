@@ -1,43 +1,68 @@
-# Project Pulse
+<p align="center">
+  <img src="src/assets/logo.svg" width="72" alt="Project Pulse logo">
+</p>
 
-A compact, read-only API and dependency health dashboard. **Not a portfolio page.**
+<h1 align="center">Project Pulse</h1>
+<p align="center"><strong>Status at a glance.</strong></p>
+<p align="center">
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black" alt="JavaScript">
+</p>
 
-## Run locally in VS Code (Windows / PowerShell)
+A lightweight synthetic monitoring dashboard that transforms cloud service availability and API response times into a clear view of application health.
 
-Requires Node.js 20+; no npm install needed.
+## Health indicators
 
-```powershell
-npm run monitor
+| Status | Meaning |
+| :--- | :--- |
+| 🟢 **Healthy** | Successful checks within the performance threshold. |
+| 🟡 **Warning** | Degraded performance, partial failure or incomplete monitoring data. |
+| 🔴 **Critical** | Complete dependency check failure. |
+
+## Features
+
+- Containerized monitoring with Docker and non-root execution.
+- Three-pulse sampling for availability and response-time analysis.
+- Consistent health classification across dependencies, applications and the system.
+- Interactive diagnostics with HTTP status codes and individual response times.
+- Automatically refreshed results with live elapsed-time indicators.
+- Automated tests for monitoring and health classification.
+
+## How it works
+
+```mermaid
+flowchart TD
+    G["Version control · Git"] --> T["Automated testing · Node.js"]
+    T --> D["Containerized execution · Docker"]
+    G --> A["CI/CD · GitHub Actions"]
+    A --> T
+    A --> D
+    C["Cloud services · REST APIs"] --> M["Synthetic monitoring"]
+    D --> M
+    M --> S["Health classification · Status snapshot"]
+    S --> U["Interactive health dashboard"]
+    A --> P["Automated deployment · GitHub Pages"]
+    S --> P
+    P --> U
+    U --> H["Healthy"] & W["Warning"] & R["Critical"]
+    style D fill:#164e63,color:#fff,stroke:#2496ed
+    style H fill:#166534,color:#fff,stroke:#22c55e
+    style W fill:#854d0e,color:#fff,stroke:#eab308
+    style R fill:#991b1b,color:#fff,stroke:#ef4444
+```
+
+Project Pulse separates monitoring execution from presentation, turning cloud measurements into a consistent view of application health. Automated tests validate the monitoring and classification logic.
+
+The diagram describes the deployment architecture; local execution uses the same monitoring worker and dashboard.
+
+## Local development
+
+Requires Node.js 22 or a compatible runtime. Docker is required for containerized execution.
+
+```sh
+npm test
 npm run dev
 ```
 
-Open http://localhost:5178. Initially all checks show **Warning / Not configured** until you supply endpoints. Never show fake healthy data.
-
-## Configure checks
-
-Set environment variables in your PowerShell terminal before running `npm run monitor`, or configure GitHub Actions repository secrets:
-
-| Variable | Purpose |
-|---|---|
-| `RESORT_AZURE_HEALTH_URL` | Public, read-only Azure Function health endpoint (must not require a private function key in URL) |
-| `RESORT_SUPABASE_URL` | Resort Ops Supabase project URL |
-| `RESORT_SUPABASE_ANON_KEY` | Resort Ops publishable/anon API key; **never service-role key** |
-| `QUEST_SUPABASE_URL` | Quest of Fortune Supabase project URL |
-| `QUEST_SUPABASE_ANON_KEY` | Quest of Fortune publishable/anon API key; **never service-role key** |
-
-The Supabase check calls `/rest/v1/` using the anon/publishable key. This tests the project's REST API gateway availability, **not direct database connectivity or every business operation**. It can reveal paused/unavailable projects but cannot always identify the precise cause. Do not place secrets in `config/services.json` or frontend files.
-
-The Azure health endpoint should return HTTP 2xx only when the Azure API itself is reachable, independently of Supabase. If no endpoint exists yet, the dashboard shows Warning until configured.
-
-## Project structure
-
-- `src/` — **dashboard UI** (`index.html`, `css/styles.css`, `js/app.js`) and generated public status data. Future micro-UI edits should touch only these source files.
-- `monitor/` — Node.js monitoring worker; `scripts/` contains the local static server.
-- `config/services.json` — monitor definitions; references environment variable names, not credentials.
-- `.github/workflows/` — scheduled checks and GitHub Pages deployment.
-- `Dockerfile` — portable Node.js monitoring worker.
-- `tests/` — basic check tests.
-
-GitHub Actions is manual-only until cloud allowances are verified. Once a schedule is approved, configure cron, the displayed frequency and the stale threshold together. The workflow publishes a fresh read-only snapshot to GitHub Pages, using the Docker monitoring worker; only the latest snapshot is retained. Statuses: green = all configured checks pass, yellow = missing/slow data, red = check failure. Response time is worker-observed HTTP response time, not browser render time.
-
-**Scope:** no login, alerts, Terraform, Kubernetes, or production changes required. Only health checks.
+Monitoring targets and credentials are configured separately from the dashboard.
