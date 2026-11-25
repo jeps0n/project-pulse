@@ -1,0 +1,51 @@
+name: Monitor and deploy Project Pulse
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  monitor-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run tests
+        run: npm test
+      - name: Build monitoring container
+        run: docker build -t project-pulse .
+      - name: Run read-only checks
+        env:
+          RESORT_AZURE_HEALTH_URL: ${{ secrets.RESORT_AZURE_HEALTH_URL }}
+          RESORT_SUPABASE_URL: ${{ secrets.RESORT_SUPABASE_URL }}
+          RESORT_SUPABASE_ANON_KEY: ${{ secrets.RESORT_SUPABASE_ANON_KEY }}
+          QUEST_SUPABASE_URL: ${{ secrets.QUEST_SUPABASE_URL }}
+          QUEST_SUPABASE_ANON_KEY: ${{ secrets.QUEST_SUPABASE_ANON_KEY }}
+        run: |
+          mkdir -p src/data
+          docker run --rm \
+            -e RESORT_AZURE_HEALTH_URL \
+            -e RESORT_SUPABASE_URL \
+            -e RESORT_SUPABASE_ANON_KEY \
+            -e QUEST_SUPABASE_URL \
+            -e QUEST_SUPABASE_ANON_KEY \
+            -v "$PWD/src/data:/app/src/data" project-pulse
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload dashboard
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: src
+      - name: Deploy dashboard
+        id: deployment
+        uses: actions/deploy-pages@v4

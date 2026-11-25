@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-11-25T15:00:52.754Z",
+  "sites": [
+    {
+      "id": "resort-ops",
+      "name": "Resort Ops",
+      "description": "Azure Functions + Supabase",
+      "lastCheck": "2026-11-25T15:00:52.754Z",
+      "ok": true,
+      "latencyMs": 151,
+      "httpStatus": null,
+      "checks": [
+        {
+          "id": "azure-api",
+          "name": "Azure API",
+          "kind": "http",
+          "ok": true,
+          "httpStatus": 200,
+          "latencyMs": 169,
+          "error": null
+        },
+        {
+          "id": "supabase",
+          "name": "Supabase",
+          "kind": "supabase",
+          "ok": true,
+          "httpStatus": 200,
+          "latencyMs": 132,
+          "error": null
+        }
+      ]
+    },
+    {
+      "id": "quest-of-fortune",
+      "name": "Quest of Fortune",
+      "description": "Supabase backend",
+      "lastCheck": "2026-11-25T15:00:52.754Z",
+      "ok": true,
+      "latencyMs": 135,
+      "httpStatus": 200,
+      "checks": [
+        {
+          "id": "supabase",
+          "name": "Supabase",
+          "kind": "supabase",
+          "ok": true,
+          "httpStatus": 200,
+          "latencyMs": 135,
+          "error": null
+        }
+      ]
+    }
+  ]
+}

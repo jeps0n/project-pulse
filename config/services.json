@@ -1,0 +1,38 @@
+[
+  {
+    "id": "resort-ops",
+    "name": "Resort Ops",
+    "description": "Azure Functions + Supabase",
+    "checks": [
+      {
+        "id": "azure-api",
+        "name": "Azure API",
+        "kind": "http",
+        "urlEnv": "RESORT_AZURE_HEALTH_URL"
+      },
+      {
+        "id": "supabase",
+        "name": "Supabase",
+        "kind": "supabase",
+        "urlEnv": "RESORT_SUPABASE_URL",
+        "keyEnv": "RESORT_SUPABASE_ANON_KEY",
+        "endpoint": "/auth/v1/health"
+      }
+    ]
+  },
+  {
+    "id": "quest-of-fortune",
+    "name": "Quest of Fortune",
+    "description": "Supabase backend",
+    "checks": [
+      {
+        "id": "supabase",
+        "name": "Supabase",
+        "kind": "supabase",
+        "urlEnv": "QUEST_SUPABASE_URL",
+        "keyEnv": "QUEST_SUPABASE_ANON_KEY",
+        "endpoint": "/rest/v1/jackpot_state?select=major_value,grand_value&id=eq.1"
+      }
+    ]
+  }
+]
