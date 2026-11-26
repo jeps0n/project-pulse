@@ -1,16 +1,10 @@
-<p align="center">
-  <img src="src/assets/logo.svg" width="72" alt="Project Pulse logo">
-</p>
+# Project Pulse
 
-<h1 align="center">Project Pulse</h1>
-<p align="center"><strong>Status at a glance.</strong></p>
-<p align="center">
-  <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker">
-  <img src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js">
-  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black" alt="JavaScript">
-</p>
+**"Status at a glance."**
 
-A lightweight synthetic monitoring dashboard that transforms cloud service availability and API response times into a clear view of application health.
+A lightweight synthetic monitoring dashboard powered by a containerized monitoring worker, tracking cloud service availability, API response times and application health.
+
+[**▶ LIVE DEMO**](https://jeps0n.github.io/project-pulse/) · [View Source](https://github.com/jeps0n/project-pulse)
 
 ## Health indicators
 
@@ -28,7 +22,7 @@ A lightweight synthetic monitoring dashboard that transforms cloud service avail
 - Interactive diagnostics with HTTP status codes and individual response times.
 - Automatically refreshed results with live elapsed-time indicators.
 - Automated tests for monitoring and health classification.
-- Hourly monitoring and deployment through GitHub Actions and GitHub Pages.
+- Hourly monitoring triggered by Google Cloud Scheduler, with execution and deployment through GitHub Actions and GitHub Pages.
 - Freshness protection that flags results as overdue after two hours.
 
 ## How it works
@@ -37,7 +31,9 @@ A lightweight synthetic monitoring dashboard that transforms cloud service avail
 flowchart TD
     G["Version control · Git"] --> T["Automated testing · Node.js"]
     T --> D["Containerized execution · Docker"]
-    G --> A["CI/CD · GitHub Actions"]
+    Q["Google Cloud Scheduler · Hourly · UTC"] --> B["Authenticated GitHub API · workflow_dispatch"]
+    B --> A["CI/CD · GitHub Actions"]
+    G --> A
     A --> T
     A --> D
     C["Cloud services · REST APIs"] --> M["Synthetic monitoring"]
@@ -56,11 +52,19 @@ flowchart TD
 
 Project Pulse separates monitoring execution from presentation, turning cloud measurements into a consistent view of application health. Automated tests validate the monitoring and classification logic.
 
-GitHub Actions runs the monitoring worker hourly and supports manual execution. GitHub Pages serves the resulting dashboard; local execution uses the same monitoring worker and dashboard.
+Google Cloud Scheduler is configured to trigger the GitHub Actions workflow once every hour (UTC) using an authenticated GitHub REST API request. The workflow uses `workflow_dispatch` for both automated API requests and manual execution; native GitHub scheduling is disabled. The scheduler uses a repository-scoped fine-grained access token with Actions read/write permission; rotate it before expiration. GitHub Pages serves the resulting dashboard; local execution uses the same monitoring worker and dashboard.
+
+## Tech Stack
+
+- **Google Cloud Scheduler** — Managed scheduling
+- **GitHub Actions** — Workflow automation and CI/CD
+- **Docker** — Containerization
+- **Node.js / JavaScript** — Monitoring engine
+- **GitHub Pages** — Dashboard hosting
 
 ## Local development
 
-Requires Node.js 22 or a compatible runtime. Docker is required for containerized execution.
+Requires Node.js 20 or newer (Node.js 22 is used in CI and Docker). Docker is required for containerized execution.
 
 ```sh
 npm test
