@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#07111d">
     <title>Project Pulse — System Monitoring</title>
     <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=3">
   </head>
   <body>
     <div class="shell">
@@ -26,10 +26,10 @@
       </header>
       <section class="hero">
         <div>
-          <h2 id="system-headline">Awaiting monitoring data</h2>
-          <p id="system-message">Checking the latest recorded service results.</p>
+          <h2 id="system-headline">Loading monitoring status</h2>
+          <p id="system-message">Retrieving latest monitoring results.</p>
         </div>
-        <svg id="hero-status" class="hero-indicator warn" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
+        <svg id="hero-status" class="hero-indicator" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
           <circle class="hero-disc" cx="36" cy="36" r="30"/>
           <g class="hero-symbol">
             <path class="symbol-up" d="M20 36 L31 47 L52 25"/>
@@ -40,7 +40,7 @@
       </section>
       <div class="toolbar">
         <div>
-          <span id="sync">Awaiting first check</span>
+          <span id="sync">Loading latest check</span>
         </div>
       </div>
       <section class="stats">
@@ -107,6 +107,6 @@
       </div>
       <p id="pulse-time"></p>
     </dialog>
-    <script type="module" src="js/app.js"></script>
+    <script type="module" src="js/app.js?v=3"></script>
   </body>
 </html>

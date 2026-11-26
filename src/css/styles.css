@@ -1,6 +1,6 @@
 :root {
   color-scheme: dark;
-  --application-gap: 56px;
+  --application-gap: 18px;
   --panel: #1b2024;
   --border: #363d41;
   --muted: #a2a9a9;
@@ -289,6 +289,9 @@ footer {
 }
 
 @media (max-width:850px) {
+  :root {
+    --application-gap: 15px;
+  }
   .shell {
     padding: 20px;
   }
@@ -401,9 +404,6 @@ body {
     font-size: 19px;
     margin: 0;
   }
-  :root {
-    --application-gap: 15px;
-  }
   .service {
     padding: 15px;
   }
@@ -467,6 +467,11 @@ body {
   flex: none;
   width: 72px;
   height: 72px;
+  --status-color: var(--muted);
+  --symbol-color: var(--panel);
+}
+
+.hero-indicator.warn {
   --status-color: var(--yellow);
   --symbol-color: #88631c;
 }
