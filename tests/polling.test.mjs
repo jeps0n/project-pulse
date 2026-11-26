@@ -1,12 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { startPolling, POLL_INTERVAL_MS } from '../src/js/polling.js';
+import {
+  startPolling,
+  POLL_INTERVAL_MS
+} from '../src/js/polling.js';
+
 function harness(load, hidden = false) {
   let tick, visibility;
-  const page = { hidden, addEventListener(name, callback) { assert.equal(name, 'visibilitychange'); visibility = callback; } };
+  const page = {
+    hidden,
+    addEventListener(name, callback) { assert.equal(name, 'visibilitychange'); visibility = callback; }
+  };
   startPolling(load, page, (callback, interval) => { assert.equal(interval, 60000); tick = callback; });
-  return { page, tick, visibility };
+  return {
+    page,
+    tick,
+    visibility
+  };
 }
+
 test('polling loads immediately and repeats every minute while visible', async () => {
   let calls = 0;
   const h = harness(async () => { calls++; });

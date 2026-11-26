@@ -1,4 +1,5 @@
 export const POLL_INTERVAL_MS = 60000;
+
 export function startPolling(load, page = document, schedule = setInterval) {
   let running = false;
   async function refresh() {

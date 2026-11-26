@@ -29,6 +29,7 @@ function updateBanner() {
   $('system-message').textContent = summary.message;
   $('hero-status').setAttribute('class', `hero-indicator ${summary.health}`);
 }
+
 function updateTimes() {
   updateBanner();
   if (lastCheck !== null)
@@ -36,8 +37,10 @@ function updateTimes() {
   if ($('pulse-dialog').open)
     $('pulse-time').textContent = `Last check: ${date(modalCheck)} · Slow threshold: ${SLOW_AFTER_MS} ms`;
 }
+
 setInterval(updateTimes, 1000);
 const latency = v => Number.isFinite(v) ? `${v} ms` : '—';
+
 function showPulses(site, check) {
   const dialog = $('pulse-dialog');
   const pulses = check.pulses || [];
@@ -47,7 +50,11 @@ function showPulses(site, check) {
   $('pulse-time').textContent = `Last check: ${date(modalCheck)} · Slow threshold: ${SLOW_AFTER_MS} ms`;
   const body = $('pulse-results');
   body.replaceChildren();
-  Array.from({ length: PULSE_COUNT }, (_, i) => pulses[i] || { ok: null }).forEach((pulse, i) => {
+  Array.from({
+    length: PULSE_COUNT
+  }, (_, i) => pulses[i] || {
+    ok: null
+  }).forEach((pulse, i) => {
     const row = body.insertRow();
     const cls = pulse.ok === false ? 'down' : pulse.ok === true && Number.isFinite(pulse.latencyMs) && pulse.latencyMs <= SLOW_AFTER_MS ? 'up' : 'warn';
     const label = pulse.ok === false ? 'Failed' : pulse.ok === true ? (cls === 'warn' ? 'Slow' : 'Passed') : '—';
@@ -59,19 +66,26 @@ function showPulses(site, check) {
     row.insertCell().textContent = latency(pulse.latencyMs);
     row.insertCell().textContent = pulses[i] ? diagnostic(pulse) : 'No result';
   });
-  selectedDependency = { siteId: site.id, checkId: check.id };
+  selectedDependency = {
+    siteId: site.id,
+    checkId: check.id
+  };
   if (!dialog.open)
     dialog.showModal();
 }
+
 $('pulse-close').addEventListener('click', () => $('pulse-dialog').close());
 $('pulse-dialog').addEventListener('close', () => {
   if (selectedDependency) {
     const { siteId, checkId } = selectedDependency;
     const link = [...document.querySelectorAll('.dependency-link')].find(b => b.dataset.siteId === siteId && b.dataset.checkId === checkId);
-    link?.focus({ preventScroll: true });
+    link?.focus({
+      preventScroll: true
+    });
   }
   selectedDependency = undefined;
 });
+
 function render(data) {
   const sites = data.sites || [];
   $('total').textContent = sites.length;
@@ -106,7 +120,12 @@ function render(data) {
     const table = document.createElement('table');
     table.className = 'dependency-table';
     const head = table.createTHead().insertRow();
-    for (const name of ['DEPENDENCY', 'STATUS', 'HTTP', 'RESPONSE']) {
+    for (const name of [
+      'DEPENDENCY',
+      'STATUS',
+      'HTTP',
+      'RESPONSE'
+    ]) {
       const th = document.createElement('th');
       th.scope = 'col';
       th.textContent = name;
@@ -150,12 +169,17 @@ function render(data) {
       $('pulse-dialog').close();
   }
   else if (focused) {
-    [...list.querySelectorAll('.dependency-link')].find(b => b.dataset.siteId === focused.dataset.siteId && b.dataset.checkId === focused.dataset.checkId)?.focus({ preventScroll: true });
+    [...list.querySelectorAll('.dependency-link')].find(b => b.dataset.siteId === focused.dataset.siteId && b.dataset.checkId === focused.dataset.checkId)?.focus({
+      preventScroll: true
+    });
   }
 }
+
 async function load() {
   try {
-    const r = await fetch(`data/status.json?t=${Date.now()}`, { cache: 'no-store' });
+    const r = await fetch(`data/status.json?t=${Date.now()}`, {
+      cache: 'no-store'
+    });
     if (!r.ok)
       throw Error(`HTTP ${r.status}`);
     const data = await r.json();
@@ -184,17 +208,17 @@ async function load() {
     console.error(e);
   }
 }
+
 startPolling(load);
+
 // Match the descriptor to the title after fonts load and on resize.
 function alignBrandLines() {
   const title = document.querySelector('.brand-copy h1');
   const descriptor = document.querySelector('.brand-descriptor');
   const text = descriptor.textContent.trim();
-
   descriptor.style.letterSpacing = '0px';
   const targetWidth = title.getBoundingClientRect().width;
   const naturalWidth = descriptor.getBoundingClientRect().width;
-
   // CSS letter-spacing contributes once per character, including the last.
   const spacing = (targetWidth - naturalWidth) / text.length;
   descriptor.style.letterSpacing = `${spacing}px`;

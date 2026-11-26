@@ -1,10 +1,20 @@
 import { createServer } from 'node:http';
-import { readFile, stat } from 'node:fs/promises';
+import {
+  readFile,
+  stat
+} from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'src');
 const port = Number(process.env.PORT || 5178);
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
+const mime = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml'
+};
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://localhost:${port}`);
@@ -18,7 +28,10 @@ createServer(async (req, res) => {
       res.writeHead(404).end();
       return;
     }
-    res.writeHead(200, { 'content-type': mime[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
+    res.writeHead(200, {
+      'content-type': mime[path.extname(file)] || 'application/octet-stream',
+      'cache-control': 'no-store'
+    });
     res.end(await readFile(file));
   }
   catch {
